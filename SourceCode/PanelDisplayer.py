@@ -261,6 +261,175 @@ def Construct_MSISE00():
 	return MSISE00_Panel
 
 
+def Construct_Interpolator_NetCDF():
+	#Create Containers
+	Interpolator_NetCDF_Panel = widgets.Box()
+	Interpolator_NetCDF_Panel.layout.overflow_x = 'scroll'
+	Interpolator_NetCDF_Panel.layout.flex_flow = 'row'
+	Interpolator_NetCDF_Panel.layout.display = 'flex'
+	########
+	## GUI code for module 'OrbitSelector'
+	########
+	# Create widgets for module's inputs
+	InputsPanel = widgets.VBox()
+	InputsPanel.layout.min_width = '330px'
+	global WIDGET_OrbitSelector_Filename
+	WIDGET_OrbitSelector_Filename = widgets.Text("")
+	WIDGET_OrbitSelector_Filename.description = 'Filename'
+	WIDGET_OrbitSelector_Filename.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_Filename,)
+	global WIDGET_OrbitSelector_EvtXY
+	WIDGET_OrbitSelector_EvtXY = widgets.Dropdown( options=['', 'Evt0', 'Evt1', 'Evt2', 'Evt3', 'Evt4', 'Evt5', 'Evt6', 'Evt7', 'Evt8', 'Evt9'], value='Evt0', description='Variable')
+	WIDGET_OrbitSelector_EvtXY.description = 'EvtXY'
+	WIDGET_OrbitSelector_EvtXY.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_EvtXY,)
+	global WIDGET_OrbitSelector_TYP
+	WIDGET_OrbitSelector_TYP = widgets.Dropdown( options=['LLA', 'VEL', 'PTG'], description='Variable')
+	WIDGET_OrbitSelector_TYP.description = 'TYP'
+	WIDGET_OrbitSelector_TYP.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_TYP,)
+	global WIDGET_OrbitSelector_PerYYY
+	WIDGET_OrbitSelector_PerYYY = widgets.Dropdown( options=['Per120', 'Per150'], description='Variable')
+	WIDGET_OrbitSelector_PerYYY.description = 'PerYYY'
+	WIDGET_OrbitSelector_PerYYY.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_PerYYY,)
+	global WIDGET_OrbitSelector_LatZZ
+	WIDGET_OrbitSelector_LatZZ = widgets.Dropdown( options=['Lat00', 'Lat40', 'Lat80'],  description='Variable')
+	WIDGET_OrbitSelector_LatZZ.description = 'LatZZ'
+	WIDGET_OrbitSelector_LatZZ.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_LatZZ,)
+	global WIDGET_OrbitSelector_SRXXHZ
+	WIDGET_OrbitSelector_SRXXHZ = widgets.Dropdown( options=['Srt16Hz', 'Srt01Hz'],  value='Srt01Hz', description='Variable')
+	WIDGET_OrbitSelector_SRXXHZ.description = 'SRXXHZ'
+	WIDGET_OrbitSelector_SRXXHZ.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_SRXXHZ,)
+	global WIDGET_OrbitSelector_SC
+	WIDGET_OrbitSelector_SC = widgets.Dropdown( options=['Msc', 'Ssc'],  description='Variable')
+	WIDGET_OrbitSelector_SC.description = 'SC'
+	WIDGET_OrbitSelector_SC.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_OrbitSelector_SC,)
+	Interpolator_NetCDF_Panel.children += (InputsPanel,)
+	# Create widget for the moudle black-box body
+	OrbitSelector_Btn = widgets.Button (
+		description='OrbitSelector',
+		tooltip="Constructs and returns an orbit full-path filename from the orbit properties.\nThe filename includes all parameters required to select the appropriate orbit.\nAll filenames  have the same length and same number of parameters. \nIn case OrbitFilename and EvtXY are empty then an empty string is returned.\nFILE FORMAT: DAED_ORB_EVTXY_TYP_PERYYY_LATZZ_SRTQQHz_XSC.csv\n  Parameter OrbitFilename:\n    If it is not empty then the rest arguments are ignored. \n    If it contains slashes then is is assumed it is a full path name and it is returned as it is.\n    If it does not contain slashes then the orbits path is added.\n    \n  Parameter EvtXY values:\n    EVTXS    X Event, Single Orbit\n    EVTXA    X Event, All Orbit\n    EVT1Y    1st Event: St Patrick’s day event [17 Mar 2015 – 20 Mar 2015]\n    EVT2Y    2nd Event ...  ...\n \n  Parameter TYP values:\n    LLA    Time,Latitude Longitude Altitude \n    VEL    Time,VmagVxVyVz\n    PTG    Time, X_GSE, Y_GSE, Z_GSE, RamX_GSE, RamY_GSE, RamZ_GSE\n  Parameter PerYYY values:\n    PER120, PER150    Perigee Altitude at 120km or 150km\n  Parameter LatZZ values:\n    LAT00, LAT40, LAT80    Perigee Latitude at 0°, 40° or 80°\n \n  Parameter SRXXHZ values:\n    SRT16Hz, SRT01Hz    Sampling rate 16Hz or 1HZ\n \n  Parameter SC values:\n    MSC    Mother Spacecraft\n    SSC    Sub-Spacecraft\n",
+	)
+	OrbitSelector_Btn.layout.min_width = '200px'
+	OrbitSelector_Btn.style.button_color = 'YellowGreen'
+	Interpolator_NetCDF_Panel.children += (OrbitSelector_Btn,)
+	# Create widgets for module's outputs
+	OutputsPanel = widgets.VBox()
+	OutputsPanel.layout.min_width = '300px'
+	WIDGET_OrbitSelector_OrbitCSVfilename = widgets.Label(value='  --> OrbitCSVfilename  ')
+	WIDGET_OrbitSelector_OrbitCSVfilename.layout.border = '1px dashed green'
+	WIDGET_OrbitSelector_OrbitCSVfilename.layout.margin ='0px 40px 0px 0px' 
+	WIDGET_OrbitSelector_OrbitCSVfilename.layout.padding ='0px 10px 0px 10px' 
+	OutputsPanel.children += (WIDGET_OrbitSelector_OrbitCSVfilename,)
+	WIDGET_OrbitSelector_OrbitNetCDFfilename = widgets.Label(value='  --> OrbitNetCDFfilename  ')
+	WIDGET_OrbitSelector_OrbitNetCDFfilename.layout.border = '1px dashed green'
+	WIDGET_OrbitSelector_OrbitNetCDFfilename.layout.margin ='0px 40px 0px 0px' 
+	WIDGET_OrbitSelector_OrbitNetCDFfilename.layout.padding ='0px 10px 0px 10px' 
+	OutputsPanel.children += (WIDGET_OrbitSelector_OrbitNetCDFfilename,)
+	Interpolator_NetCDF_Panel.children += (OutputsPanel,)
+	########
+	## GUI code for module 'Interpolator'
+	########
+	# Create widgets for module's inputs
+	InputsPanel = widgets.VBox()
+	InputsPanel.layout.min_width = '330px'
+	global WIDGET_Interpolator_model_data_file
+	WIDGET_Interpolator_model_data_file = widgets.Text(value="/home/NAS/TIEGCM_DATA/tiegcm_s_24900.nc")
+	WIDGET_Interpolator_model_data_file.description = 'model_data_file'
+	WIDGET_Interpolator_model_data_file.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_Interpolator_model_data_file,)
+	WIDGET_Interpolator_orbit_file = widgets.Label(value='  OrbitSelector.OrbitNetCDFfilename --> orbit_file  ')
+	WIDGET_Interpolator_orbit_file.layout.border = '1px dashed blue'
+	WIDGET_Interpolator_orbit_file.layout.padding = '0px 10px 0px 10px'
+	InputsPanel.children += (WIDGET_Interpolator_orbit_file,)
+	Interpolator_NetCDF_Panel.children += (InputsPanel,)
+	# Create widget for the moudle black-box body
+	Interpolator_Btn = widgets.Button (
+		description='Interpolator',
+		tooltip="model-->string:: name of model eg TIEGCM\n model_data_file--> string:: model data files stored on DaedalusNAS\n orbit_file-->string :: orbit filename in Time-Lat-Lon-Alt format stored on DaedalusNAS\n save--> Logical:: if true saves interpolated values to directory\n VAR--> string:: variable to inteprolate, must be  one of the variables included in the model data\nOutputs:: Plots+ 1 csv file stored on DaedalusNAS in ModelOutputs/Interpolator",
+	)
+	Interpolator_Btn.layout.min_width = '200px'
+	Interpolator_Btn.style.button_color = 'gold'
+	Interpolator_NetCDF_Panel.children += (Interpolator_Btn,)
+	# Create widgets for module's outputs
+	OutputsPanel = widgets.VBox()
+	OutputsPanel.layout.min_width = '300px'
+	WIDGET_Interpolator_InterpolatedOrbit = widgets.Label(value='  --> InterpolatedOrbit  ')
+	WIDGET_Interpolator_InterpolatedOrbit.layout.border = '1px dashed green'
+	WIDGET_Interpolator_InterpolatedOrbit.layout.margin ='0px 40px 0px 0px' 
+	WIDGET_Interpolator_InterpolatedOrbit.layout.padding ='0px 10px 0px 10px' 
+	OutputsPanel.children += (WIDGET_Interpolator_InterpolatedOrbit,)
+	Interpolator_NetCDF_Panel.children += (OutputsPanel,)
+	########
+	## GUI code for module 'PlotGlobe'
+	########
+	# Create widgets for module's inputs
+	InputsPanel = widgets.VBox()
+	InputsPanel.layout.min_width = '330px'
+	global WIDGET_PlotGlobe_SurfaceFilename
+	WIDGET_PlotGlobe_SurfaceFilename = widgets.Text()
+	WIDGET_PlotGlobe_SurfaceFilename.description = 'SurfaceFilename'
+	WIDGET_PlotGlobe_SurfaceFilename.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_SurfaceFilename,)
+	global WIDGET_PlotGlobe_SurfaceVariableToPlot
+	WIDGET_PlotGlobe_SurfaceVariableToPlot = widgets.Text(value='NE')
+	WIDGET_PlotGlobe_SurfaceVariableToPlot.description = 'SurfaceVariableToPlot'
+	WIDGET_PlotGlobe_SurfaceVariableToPlot.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_SurfaceVariableToPlot,)
+	global WIDGET_PlotGlobe_SurfaceColorbarTitle
+	WIDGET_PlotGlobe_SurfaceColorbarTitle = widgets.Text()
+	WIDGET_PlotGlobe_SurfaceColorbarTitle.description = 'SurfaceColorbarTitle'
+	WIDGET_PlotGlobe_SurfaceColorbarTitle.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_SurfaceColorbarTitle,)
+	global WIDGET_PlotGlobe_SurfaceColorscaleName
+	WIDGET_PlotGlobe_SurfaceColorscaleName = widgets.Dropdown( options=['', 'None', 'Blackbody', 'Bluered', 'Blues', 'Earth', 'Electric', 'Greens', 'Greys', 'Hot', 'Jet', 'Picnic', 'Portland', 'Rainbow', 'RdBu', 'Reds', 'Viridis', 'YlGnBu', 'YlOrRd'], value='Jet', description='Variable')
+	WIDGET_PlotGlobe_SurfaceColorscaleName.description = 'SurfaceColorscaleName'
+	WIDGET_PlotGlobe_SurfaceColorscaleName.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_SurfaceColorscaleName,)
+	WIDGET_PlotGlobe_OrbitFilename = widgets.Label(value='  Interpolator.InterpolatedOrbit --> OrbitFilename  ')
+	WIDGET_PlotGlobe_OrbitFilename.layout.border = '1px dashed blue'
+	WIDGET_PlotGlobe_OrbitFilename.layout.padding = '0px 10px 0px 10px'
+	InputsPanel.children += (WIDGET_PlotGlobe_OrbitFilename,)
+	global WIDGET_PlotGlobe_OrbitVariableToPlot
+	WIDGET_PlotGlobe_OrbitVariableToPlot = widgets.Text(value='NE')
+	WIDGET_PlotGlobe_OrbitVariableToPlot.description = 'OrbitVariableToPlot'
+	WIDGET_PlotGlobe_OrbitVariableToPlot.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_OrbitVariableToPlot,)
+	global WIDGET_PlotGlobe_OrbitColorbarTitle
+	WIDGET_PlotGlobe_OrbitColorbarTitle = widgets.Text()
+	WIDGET_PlotGlobe_OrbitColorbarTitle.description = 'OrbitColorbarTitle'
+	WIDGET_PlotGlobe_OrbitColorbarTitle.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_OrbitColorbarTitle,)
+	global WIDGET_PlotGlobe_OrbitColorscaleName
+	WIDGET_PlotGlobe_OrbitColorscaleName = widgets.Dropdown( options=['', 'None', 'Blackbody', 'Bluered', 'Blues', 'Earth', 'Electric', 'Greens', 'Greys', 'Hot', 'Jet', 'Picnic', 'Portland', 'Rainbow', 'RdBu', 'Reds', 'Viridis', 'YlGnBu', 'YlOrRd'], value='Jet', description='Variable')
+	WIDGET_PlotGlobe_OrbitColorscaleName.description = 'OrbitColorscaleName'
+	WIDGET_PlotGlobe_OrbitColorscaleName.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_OrbitColorscaleName,)
+	global WIDGET_PlotGlobe_PlotTitle
+	WIDGET_PlotGlobe_PlotTitle = widgets.Text()
+	WIDGET_PlotGlobe_PlotTitle.description = 'PlotTitle'
+	WIDGET_PlotGlobe_PlotTitle.layout.border = '1px dashed blue'
+	InputsPanel.children += (WIDGET_PlotGlobe_PlotTitle,)
+	Interpolator_NetCDF_Panel.children += (InputsPanel,)
+	# Create widget for the moudle black-box body
+	PlotGlobe_Btn = widgets.Button (
+		description='PlotGlobe',
+		tooltip="Creates a 3D plot of an earth globe. Can plot a sphere surface and/or a satellite orbit. \nThe surface and the orbit are colored according to the selected variable values in the data files. \nThe data files can be of CSV o NetCDF4 format.\nThe same or different variables can be selected for plotting at the surface and the orbit.\nThe same or different colorscales can be selected for the surface and the orbit.\nThe same or different value range can be selected for the surface and the orbit by assigning the same or different colorbar titles.\nValid Colorscale Names: ‘Blackbody’, ‘Bluered’, ‘Blues’, ‘Earth’, ‘Electric’, ‘Greens’, ‘Greys’, ‘Hot’, ‘Jet’, ‘Picnic’, ‘Portland’, ‘Rainbow’, ‘RdBu’, ‘Reds’, ‘Viridis’, ‘YlGnBu’, ‘YlOrRd’\nARGUMENTS:\n  SurfaceFilename: The file which contains data for a surface. If empty string then no surface will be plotted. \n                   CSV format: Time,Lat,Lon,Alt,value. Contains the data for the sphere surface. \n                   NetCDF format: see Daedalus User Manual\n  SurfaceVariableToPlot: The name of the variable to read from the surface data file and plot upon the globe.\n  SurfaceColorbarTitle: A title to display above the colorbar which refers to the surface data\n  SurfaceColorscaleName: The name of the Colorscale to use for the surface data. \n                         In case an empty string is passed then a default HeatMap colorscale will be applied.\n                         In case None is passed then all points will be black irrespective of value.\n  OrbitFilename: counterpart of the corresponding argument for the Surface data\n  OrbitVariableToPlot: counterpart of the corresponding argument for the Surface data \n  OrbitColorbarTitle: counterpart of the corresponding argument for the Surface data \n  OrbitColorscaleName: counterpart of the corresponding argument for the Surface data\n  PlotTitle: A title which is displayed on the top of the plot.\nRETURNS: a string containing information about the Data\n",
+	)
+	PlotGlobe_Btn.layout.min_width = '200px'
+	PlotGlobe_Btn.style.button_color = 'deeppink'
+	Interpolator_NetCDF_Panel.children += (PlotGlobe_Btn,)
+	# Create widgets for module's outputs
+	OutputsPanel = widgets.VBox()
+	OutputsPanel.layout.min_width = '300px'
+	Interpolator_NetCDF_Panel.children += (OutputsPanel,)
+	return Interpolator_NetCDF_Panel
+
+
 def Construct_Interpolator():
 	#Create Containers
 	Interpolator_Panel = widgets.Box()
