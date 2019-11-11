@@ -30,6 +30,9 @@ from SourceCode.ModulesSourceCode.IRI16.IRI16 import IRI16
 from SourceCode.ModulesSourceCode.IRI16.IRI16 import IRI16
 from SourceCode.ModulesSourceCode.SubGridVariability.SubGridVariability import SubGridVariability
 from SourceCode.ModulesSourceCode.PlotGlobe.PlotGlobe import PlotGlobe
+from SourceCode.ModulesSourceCode.OrbitSelector.OrbitSelector import OrbitSelector
+from SourceCode.ModulesSourceCode.Interpolator.Interpolator import Interpolator
+from SourceCode.ModulesSourceCode.PlotGlobe.PlotGlobe import PlotGlobe
 import SourceCode.PanelDisplayer as PanelDisplayer
 
 def Display( *arg ): # in order to avoid circular dependent imports
@@ -59,6 +62,23 @@ def Execute_MSISE00():
 	Display( '          MeshgridResultCSV: ' + str(MSISE00_MeshgridResultCSV) )
 	PlotGlobe( MSISE00_MeshgridResultCSV, PanelDisplayer.WIDGET_PlotGlobe_SurfaceVariableToPlot.value, PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorbarTitle.value, PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorscaleName.value, MSISE00_ObitResultCSV, PanelDisplayer.WIDGET_PlotGlobe_OrbitVariableToPlot.value, PanelDisplayer.WIDGET_PlotGlobe_OrbitColorbarTitle.value, PanelDisplayer.WIDGET_PlotGlobe_OrbitColorscaleName.value, PanelDisplayer.WIDGET_PlotGlobe_PlotTitle.value )
 	Display( '    PlotGlobe( ' , MSISE00_MeshgridResultCSV,', ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceVariableToPlot.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorbarTitle.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorscaleName.value,', ' , MSISE00_ObitResultCSV,', ' , PanelDisplayer.WIDGET_PlotGlobe_OrbitVariableToPlot.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_OrbitColorbarTitle.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_OrbitColorscaleName.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_PlotTitle.value , ' ) results:')
+	Display( '          -void-' )
+	Display('')
+"""
+Executes these Simulation Modules:
+  OrbitSelector  Interpolator  PlotGlobe  
+"""
+def Execute_Interpolator_NetCDF():
+	Display('Executing Interpolator_NetCDF:')
+	OrbitSelector_OrbitCSVfilename, OrbitSelector_OrbitNetCDFfilename = OrbitSelector( PanelDisplayer.WIDGET_OrbitSelector_Filename.value, PanelDisplayer.WIDGET_OrbitSelector_EvtXY.value, PanelDisplayer.WIDGET_OrbitSelector_TYP.value, PanelDisplayer.WIDGET_OrbitSelector_PerYYY.value, PanelDisplayer.WIDGET_OrbitSelector_LatZZ.value, PanelDisplayer.WIDGET_OrbitSelector_SRXXHZ.value, PanelDisplayer.WIDGET_OrbitSelector_SC.value )
+	Display( '    OrbitSelector( ' , PanelDisplayer.WIDGET_OrbitSelector_Filename.value,', ' , PanelDisplayer.WIDGET_OrbitSelector_EvtXY.value,', ' , PanelDisplayer.WIDGET_OrbitSelector_TYP.value,', ' , PanelDisplayer.WIDGET_OrbitSelector_PerYYY.value,', ' , PanelDisplayer.WIDGET_OrbitSelector_LatZZ.value,', ' , PanelDisplayer.WIDGET_OrbitSelector_SRXXHZ.value,', ' , PanelDisplayer.WIDGET_OrbitSelector_SC.value , ' ) results:')
+	Display( '          OrbitCSVfilename: ' + str(OrbitSelector_OrbitCSVfilename) )
+	Display( '          OrbitNetCDFfilename: ' + str(OrbitSelector_OrbitNetCDFfilename) )
+	Interpolator_InterpolatedOrbit = Interpolator( PanelDisplayer.WIDGET_Interpolator_model_data_file.value, OrbitSelector_OrbitNetCDFfilename )
+	Display( '    Interpolator( ' , PanelDisplayer.WIDGET_Interpolator_model_data_file.value,', ' , OrbitSelector_OrbitNetCDFfilename , ' ) results:')
+	Display( '          InterpolatedOrbit: ' + str(Interpolator_InterpolatedOrbit) )
+	PlotGlobe( PanelDisplayer.WIDGET_PlotGlobe_SurfaceFilename.value, PanelDisplayer.WIDGET_PlotGlobe_SurfaceVariableToPlot.value, PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorbarTitle.value, PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorscaleName.value, Interpolator_InterpolatedOrbit, PanelDisplayer.WIDGET_PlotGlobe_OrbitVariableToPlot.value, PanelDisplayer.WIDGET_PlotGlobe_OrbitColorbarTitle.value, PanelDisplayer.WIDGET_PlotGlobe_OrbitColorscaleName.value, PanelDisplayer.WIDGET_PlotGlobe_PlotTitle.value )
+	Display( '    PlotGlobe( ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceFilename.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceVariableToPlot.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorbarTitle.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_SurfaceColorscaleName.value,', ' , Interpolator_InterpolatedOrbit,', ' , PanelDisplayer.WIDGET_PlotGlobe_OrbitVariableToPlot.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_OrbitColorbarTitle.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_OrbitColorscaleName.value,', ' , PanelDisplayer.WIDGET_PlotGlobe_PlotTitle.value , ' ) results:')
 	Display( '          -void-' )
 	Display('')
 """
