@@ -1,10 +1,86 @@
+import sys
+sys.path.insert(1, '../CoverageCalculator/')
+import Conversions as Conversions
+
 import pandas as pd
 import apexpy as ap
 import numpy as np
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
+import csv
 
 
-def ApexConvert( sourceFilename, resultFilename ):
+'''
+reads a csv orbit file with format:
+    Time (UTCG)
+    Lat (deg)
+    Lon (deg)
+    Alt (km)
+and creates a new csv orbit file with the same fields plus the extra fields:
+    Daedalus.Magnetic Latitude
+    Daedalus.Magnetic Longitude
+    Daedalus.MLT
+The values are calculated for modified apex at 90 km - used by TIEGCM as well
+'''
+def AddMagneticCoordinates_ModifiedApex90( sourceFilename, resultFilename ):
+    CSVfileOUT = open(resultFilename, 'w')
+    CSVwriter  = csv.writer(CSVfileOUT, delimiter=',')
+    CSVwriter.writerow( ["Time (UTCG)", "Lat (deg)", "Lon (deg)", "Alt (km)", "Daedalus.Magnetic Latitude", "Daedalus.Magnetic Longitude", "Daedalus.MLT"] )
+    with open( sourceFilename ) as CSVfileIN:        
+        CSVreader = csv.reader( CSVfileIN )
+        # locate the column numnbers of interest inside the csv file
+        CSVheader = next( CSVreader )
+        Time_idx     = CSVheader.index( "Time (UTCG)" ) #CSVheader.index( "Daedalus.EpochText" )
+        Lat_idx      = CSVheader.index( "Lat (deg)" ) #CSVheader.index( "Daedalus.Latitude" )
+        Lon_idx      = CSVheader.index( "Lon (deg)" ) #CSVheader.index( "Daedalus.Longitude" )
+        Alt_idx      = CSVheader.index( "Alt (km)" ) #CSVheader.index( "Daedalus.Longitude" )
+        # read the orbit file
+        for row in CSVreader: # for each satellite position
+            resultItems = list()
+            # add the standard fields to the result file
+            resultItems.append( row[Time_idx] )
+            resultItems.append( row[Lat_idx] ) # Latitude is geodetic inside the orbit file
+            resultItems.append( row[Lon_idx] ) 
+            resultItems.append( row[Alt_idx] )
+            # Calculate the extra fields
+            try: # read time for the current orbit position 
+                current_time = datetime.strptime(row[Time_idx], '%d %b %Y %H:%M:%S.%f')
+            except:
+                try:
+                    current_time = datetime.strptime(row[Time_idx], '%b %d %Y %H:%M:%S.%f')
+                except:
+                    print( "ERROR - Wrong time format:", row[Time_idx] )
+                    return
+            # take care of time so that it is compatible with igrf
+            #if current_time.year > 2024:  
+            #    time_for_igrf = current_time - relativedelta(years=13)
+            #else:
+            #    time_for_igrf = current_time
+            time_for_igrf = current_time
+            MagneticLatitude, MagneticLongitude, MagneticLocalTime = Conversions.getMagneticProperties( time_for_igrf, float(row[Lat_idx]), float(row[Lon_idx]) )
+            # add the extra fields to the result file
+            resultItems.append( MagneticLatitude )
+            resultItems.append( MagneticLongitude )
+            resultItems.append( MagneticLocalTime )
+            # write it
+            CSVwriter.writerow( resultItems )
+    # clean up
+    CSVfileOUT.close()
+
+    
+'''
+reads a csv orbit file with format:
+    Time (UTCG)
+    Lat (deg)
+    Lon (deg)
+    Alt (km)
+and creates a new csv orbit file with the same fields plus the extra fields:
+    Daedalus.Magnetic Latitude
+    Daedalus.Magnetic Longitude
+    Daedalus.MLT
+The values are calculated for quasi-dipole approximation
+'''
+def AddMagneticCoordinates_QuasiDipole( sourceFilename, resultFilename ):
     input_file = pd.read_csv( sourceFilename ) 
     geod_lat = np.array(input_file["Lat (deg)"])
     geod_lon = np.array(input_file["Lon (deg)"])
