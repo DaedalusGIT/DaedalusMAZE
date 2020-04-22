@@ -22,7 +22,7 @@ and creates a new csv orbit file with the same fields plus the extra fields:
     Daedalus.MLT
 The values are calculated for modified apex at 90 km - used by TIEGCM as well
 '''
-def AddMagneticCoordinates_ModifiedApex90( sourceFilename, resultFilename ):
+def AddMagneticCoordinates( sourceFilename, resultFilename ):
     CSVfileOUT = open(resultFilename, 'w')
     CSVwriter  = csv.writer(CSVfileOUT, delimiter=',')
     CSVwriter.writerow( ["Time (UTCG)", "Lat (deg)", "Lon (deg)", "Alt (km)", "Daedalus.Magnetic Latitude", "Daedalus.Magnetic Longitude", "Daedalus.MLT"] )
@@ -57,7 +57,7 @@ def AddMagneticCoordinates_ModifiedApex90( sourceFilename, resultFilename ):
             #else:
             #    time_for_igrf = current_time
             time_for_igrf = current_time
-            MagneticLatitude, MagneticLongitude, MagneticLocalTime = Conversions.getMagneticProperties( time_for_igrf, float(row[Lat_idx]), float(row[Lon_idx]) )
+            MagneticLatitude, MagneticLongitude, MagneticLocalTime = Conversions.getMagneticProperties( time_for_igrf, float(row[Lat_idx]), float(row[Lon_idx]), float(row[Alt_idx]) )
             # add the extra fields to the result file
             resultItems.append( MagneticLatitude )
             resultItems.append( MagneticLongitude )

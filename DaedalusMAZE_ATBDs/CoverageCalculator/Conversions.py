@@ -11,10 +11,10 @@ Calculates Magnetic Coordinates and Magnetic Local Time.
 The values are calculated for modified apex at 90 km - which is used by TIEGCM as well.
 Note: in order to convert from GeocentricLat to GeodeticLat you can use geo_lat2geod_lat.
 '''
-def getMagneticProperties( Time, GeodeticLat, GeodeticLon ):
+def getMagneticProperties( Time, GeodeticLat, GeodeticLon, Altitude ):
     apObj = ap.Apex( Time )    
     if GeodeticLon > 180: GeodeticLon -= 360
-    MagneticLatitude, MagneticLongitude = apObj.geo2apex( GeodeticLat, GeodeticLon, 90 )
+    MagneticLatitude, MagneticLongitude = apObj.geo2qd( GeodeticLat, GeodeticLon, Altitude ) # geo2qd return quasi-dipole coordiantes - geo2apex returns modified apex coordinates
     MagneticLocalTime = apObj.mlon2mlt( MagneticLongitude, Time )
     return MagneticLatitude, MagneticLongitude, MagneticLocalTime
 
