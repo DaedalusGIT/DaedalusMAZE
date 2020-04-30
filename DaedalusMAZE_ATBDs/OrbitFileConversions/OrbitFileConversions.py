@@ -9,6 +9,20 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import csv
 
+def parseDaedalusDate( dateString ):
+    result = None
+    try:
+        result = datetime.strptime(dateString[0:24], '%b %d %Y %H:%M:%S.%f')
+    except:
+        try:
+            result = datetime.strptime(dateString, '%b %d %Y %H:%M:%S.%f')
+        except:
+            try:
+                result = datetime.strptime(dateString, '%d %b %Y %H:%M:%S.%f')
+            except:
+                result = None
+    return result
+
 
 '''
 reads a csv orbit file with format:
@@ -42,15 +56,11 @@ def AddMagneticCoordinates( sourceFilename, resultFilename ):
             resultItems.append( row[Lat_idx] ) # Latitude is geodetic inside the orbit file
             resultItems.append( row[Lon_idx] ) 
             resultItems.append( row[Alt_idx] )
-            # Calculate the extra fields
-            try: # read time for the current orbit position 
-                current_time = datetime.strptime(row[Time_idx], '%d %b %Y %H:%M:%S.%f')
-            except:
-                try:
-                    current_time = datetime.strptime(row[Time_idx], '%b %d %Y %H:%M:%S.%f')
-                except:
-                    print( "ERROR - Wrong time format:", row[Time_idx] )
-                    return
+            # Calculate the extra fields            
+            current_time = parseDaedalusDate( row[Time_idx] )  # read time for the current orbit position 
+            if current_time == None:
+                print( "ERROR - Wrong time format:", row[Time_idx] )
+                return                
             # take care of time so that it is compatible with igrf
             #if current_time.year > 2024:  
             #    time_for_igrf = current_time - relativedelta(years=13)
@@ -120,7 +130,7 @@ def AddMagneticCoordinates_QuasiDipole( sourceFilename, resultFilename ):
         new_micros=int(round(int(microseconds)/divisor,1))
         Time_value_String=date_time+'.'+str(new_micros)
         new_time_string.append(Time_value_String)
-        dt_object = datetime.strptime(Time_value_String, '%d %b %Y %H:%M:%S.%f')
+        dt_object = datetime.strptime(Time_value_String[0:24], '%d %b %Y %H:%M:%S.%f')
         k=ap.Apex(date=dt_object)
         # converting to magnetic coordinates
         mag_lat , mag_lon = k.geo2qd(geod_lat[i],geod_lon[i],re_geod_alt[i])
