@@ -237,8 +237,7 @@ def SGVpreview_forCertainLongitude( aLongitude ):
     
     
     
-'''
-def GG( LAT, LON ):
+def Gaussian_noCUDA( LAT, LON ):
     result = 0.0
     LatMin =  50
     LatMax =  90
@@ -260,6 +259,7 @@ def GG( LAT, LON ):
         result += Amplitude * math.e ** ( - F1 - ((LON-slideLon)**2)/F2  + LatitudeModulationSouth )
         #
         return result
+'''  
 startSecs = time.time()
 SectionData = list()
 LON = 0          
@@ -307,13 +307,19 @@ def createSliceImages_forEveryLongitude():
 
     
     
-def calculateSGV_forSinglePoint( Longitude, Latitude, MaxAmplitude=200, Scale=100 ):
+def calculateSGV_forSinglePoint( Longitude, Latitude, MaxAmplitude=200, Scale=100, UseCUDA=True ):
+    result = 0
     global AmpMax, ScaleLat
     if len(FuncParams)==0  or AmpMax!=MaxAmplitude or ScaleLat!=Scale:
         AmpMax = MaxAmplitude
         ScaleLat = Scale
         initGaussianFunctions()
-    return np.sum ( Gaussian( Longitude, Latitude, col0, col1, col2, col3, col4 ) )
+        
+    if UseCUDA==True:
+        result = np.sum ( Gaussian( Longitude, Latitude, col0, col1, col2, col3, col4 ) )
+    else:
+        result = Gaussian_noCUDA(Longitude, Latitude)
+    return result
 
 # EXAMPLES OF HOW TO USE THIS MODULE:
 #print( "Test: SGV for single point (11.97,17.28) is", calculateSGV_forSinglePoint(11.97,17.28) )
