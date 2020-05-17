@@ -40,7 +40,7 @@ FuncParams = list() # a list of lists. each element is a set of attributes for a
 # All spikes together construct the Sub-Grid-Variability
 def initGaussianFunctions():
     global FuncParams, col0, col1, col2, col3, col4
-    for i in range( 0, 10000 ): # 600 or 90000 for world
+    for i in range( 0, 30000 ): 
         Amplitude = random.random() * 2 *AmpMax - AmpMax # spike height
         sigmaLat  = 57.295 * np.random.normal( 0.5, 0.18 ) *  ScaleLat / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
         slideLat  = random.random() * 180 - 90   # spike position at Latitudes - they will be contained by LatitudeModulationNorth
@@ -48,7 +48,7 @@ def initGaussianFunctions():
         slideLon  = random.random() * (LonMax-LonMin) - (LonMax-LonMin)/2  # spike position at Longitudes
         FuncParams.append( [Amplitude, sigmaLat, slideLat, sigmaLon, slideLon] )
 
-    for i in range( 0, 10000 ): # 3000
+    for i in range( 0, 30000 ): 
         Amplitude = (random.random() * 2 *AmpMax - AmpMax )# spike height
         sigmaLat  = 57.295 * np.random.normal( 0.5, 0.18 ) *  (ScaleLat/10) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
         slideLat  = random.random() * 180 - 90   # spike position at Latitudes - they will be contained by LatitudeModulationNorth
@@ -56,7 +56,7 @@ def initGaussianFunctions():
         slideLon  = random.random() * (LonMax-LonMin) - (LonMax-LonMin)/2  # spike position at Longitudes
         FuncParams.append( [Amplitude, sigmaLat, slideLat, sigmaLon, slideLon] )
 
-    for i in range( 0, 10000 ): #1000
+    for i in range( 0, 30000 ): 
         Amplitude = (random.random() * 2 *AmpMax - AmpMax) # spike height
         sigmaLat  = 57.295 * np.random.normal( 0.5, 0.18 ) *  (ScaleLat/100) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
         slideLat  = random.random() * 180 - 90   # spike position at Latitudes - they will be contained by LatitudeModulationNorth
@@ -133,7 +133,7 @@ print( "TEST Sub-Grid-Variability for world finished in" , finishSecs-startSecs,
     
     
 @vectorize(['float32(float32, float32, float32, float32, float32, float32, float32)'], target='cuda')
-def Gaussian( LON, LAT, Amplitude, sigmaLat, slideLat, sigmaLon, slideLon ):
+def Gaussian( LAT, LON, Amplitude, sigmaLat, slideLat, sigmaLon, slideLon ):
     result = 0.0
     sigma_mod =  (LatMax - LatMin)/2.3548
     #if abs(LAT) < abs(LatMin)-5: return 0  # <<<<
@@ -159,7 +159,7 @@ def Gaussian( LON, LAT, Amplitude, sigmaLat, slideLat, sigmaLon, slideLon ):
     return result
 
 # Calculate Sub-Grid-Variability for world #################################################################
-def SGVpreview_forWorlds():
+def SGVpreview_forWorld( UseCUDA=True ):
     if len(FuncParams) == 0: initGaussianFunctions()
     startSecs = time.time()
     # init
@@ -174,8 +174,11 @@ def SGVpreview_forWorlds():
         for j in range( 0, len(Lats) ):
             LON = Lons[i]
             LAT = Lats[j]
-            AllResults = Gaussian( LON, LAT, col0, col1, col2, col3, col4 )
-            Data[i][j] = np.sum(AllResults)
+            if UseCUDA==True:
+                AllResults = Gaussian( LAT, LON, col0, col1, col2, col3, col4 )
+                Data[i][j] = np.sum(AllResults)
+            else:
+                Data[i][j] = Gaussian_noCUDA(LAT, LON)
     finishSecs = time.time()
     print( "Sub-Grid-Variability for world finished in" , finishSecs-startSecs, "sec")
     # PLOT 
@@ -213,7 +216,7 @@ def SGVpreview_forCertainLongitude( aLongitude ):
     LON = aLongitude
     myRange = np.arange( 50, 90, 0.01 )
     for LAT in myRange:
-        AllResults = Gaussian( LON, LAT, col0, col1, col2, col3, col4 )
+        AllResults = Gaussian( LAT, LON, col0, col1, col2, col3, col4 )
         value = np.sum(AllResults)
         SectionData.append( value )
     finishSecs = time.time()    
@@ -239,12 +242,11 @@ def SGVpreview_forCertainLongitude( aLongitude ):
     
 def Gaussian_noCUDA( LAT, LON ):
     result = 0.0
-    LatMin =  50
-    LatMax =  90
+    usefull_range = 4*ScaleLat / 111 # there are ~111km per degree
     for G in FuncParams:
         slideLat  = G[2]
         slideLon  = G[4]
-        if abs(LAT-slideLat) > 6  and  abs(LON-slideLon) > 6: continue  # <<<<
+        if abs(LAT-slideLat) > usefull_range  or  abs(LON-slideLon) > usefull_range: continue  # <<<<
         Amplitude = G[0]
         sigmaLat  = G[1]
         sigmaLon  = G[3]
@@ -257,15 +259,15 @@ def Gaussian_noCUDA( LAT, LON ):
         # for symmetry - for South Altitudes
         LatitudeModulationSouth =  -((LAT+LatMax)**2) / (2*sigma_mod**2) 
         result += Amplitude * math.e ** ( - F1 - ((LON-slideLon)**2)/F2  + LatitudeModulationSouth )
-        #
-        return result
+    #
+    return result
 '''  
 startSecs = time.time()
 SectionData = list()
 LON = 0          
 myRange = np.arange( 50, 90, 0.01 )
 for LAT in myRange:
-    value = Gaussian( LON, LAT, col0, col1, col2, col3, col4 )
+    value = Gaussian( LAT, LON, col0, col1, col2, col3, col4 )
     SectionData.append( value )
 finishSecs = time.time()    
 print( "Sub-Grid-Variability (ver2) for LON=0 finished in" , finishSecs-startSecs, "sec.", "Points:", len(SectionData) )
@@ -291,7 +293,7 @@ def createSliceImages_forEveryLongitude():
         if LON%20==0: print( "working Longitude", LON )
         SectionData = list()
         for LAT in myRange:
-            AllResults = Gaussian( LON, LAT, col0, col1, col2, col3, col4 )
+            AllResults = Gaussian( LAT, LON, col0, col1, col2, col3, col4 )
             value = np.sum(AllResults)
             SectionData.append( value )
         fig = go.Figure(data=go.Scatter(x=list(myRange), y=SectionData))
@@ -307,7 +309,7 @@ def createSliceImages_forEveryLongitude():
 
     
     
-def calculateSGV_forSinglePoint( Longitude, Latitude, MaxAmplitude=200, Scale=100, UseCUDA=True ):
+def calculateSGV_forSinglePoint( Latitude, Longitude, MaxAmplitude=200, Scale=100, UseCUDA=True ):
     result = 0
     global AmpMax, ScaleLat
     if len(FuncParams)==0  or AmpMax!=MaxAmplitude or ScaleLat!=Scale:
@@ -316,13 +318,13 @@ def calculateSGV_forSinglePoint( Longitude, Latitude, MaxAmplitude=200, Scale=10
         initGaussianFunctions()
         
     if UseCUDA==True:
-        result = np.sum ( Gaussian( Longitude, Latitude, col0, col1, col2, col3, col4 ) )
+        result = np.sum ( Gaussian( Latitude, Longitude, col0, col1, col2, col3, col4 ) )
     else:
-        result = Gaussian_noCUDA(Longitude, Latitude)
+        result = Gaussian_noCUDA(Latitude, Longitude )
     return result
 
 # EXAMPLES OF HOW TO USE THIS MODULE:
 #print( "Test: SGV for single point (11.97,17.28) is", calculateSGV_forSinglePoint(11.97,17.28) )
-#SGVpreview_forWorlds()
+#SGVpreview_forWorld()
 #SGVpreview_forCertainLongitude(0)
 #createSliceImages_forEveryLongitude():
