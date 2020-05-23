@@ -24,9 +24,9 @@ from numba import cuda
 
 
 
-R_Earth = 6371 # the Earth radius in km
-LatMin =  50   # the min latitude for which the gaussian functions will be created
-LatMax =  90   # the max latitude for which the gaussian functions will be created
+R_Earth = 6378 # the Earth radius in km
+LatMin =  45   # the min latitude for which the gaussian functions will be created
+LatMax =  65   # the max latitude for which the gaussian functions will be created
 LonMin = -180  # the min longitude for which the gaussian functions will be created
 LonMax =  180  # the max longitude for which the gaussian functions will be created
 AmpMax = 200   # the maximum Amplitude for which the gaussian functions will be created
@@ -40,25 +40,25 @@ FuncParams = list() # a list of lists. each element is a set of attributes for a
 # All spikes together construct the Sub-Grid-Variability
 def initGaussianFunctions():
     global FuncParams, col0, col1, col2, col3, col4
-    for i in range( 0, 30000 ): 
+    for i in range( 0, 250000 ): 
         Amplitude = random.random() * 2 *AmpMax - AmpMax # spike height
-        sigmaLat  = 57.295 * np.random.normal( 0.5, 0.18 ) *  ScaleLat / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
+        sigmaLat  = 57.295  *  (ScaleLat) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
         slideLat  = random.random() * 180 - 90   # spike position at Latitudes - they will be contained by LatitudeModulationNorth
         sigmaLon  = 2 * sigmaLat #*   np.rad2deg(math.sin( np.deg2rad(sigmaLat-90) ))
         slideLon  = random.random() * (LonMax-LonMin) - (LonMax-LonMin)/2  # spike position at Longitudes
         FuncParams.append( [Amplitude, sigmaLat, slideLat, sigmaLon, slideLon] )
 
-    for i in range( 0, 30000 ): 
+    for i in range( 0, 250000 ): 
         Amplitude = (random.random() * 2 *AmpMax - AmpMax )# spike height
-        sigmaLat  = 57.295 * np.random.normal( 0.5, 0.18 ) *  (ScaleLat/10) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
+        sigmaLat  = 57.295 * (ScaleLat) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
         slideLat  = random.random() * 180 - 90   # spike position at Latitudes - they will be contained by LatitudeModulationNorth
         sigmaLon  = 2 * sigmaLat # *    np.rad2deg(math.sin( np.deg2rad(sigmaLat-90) ))
         slideLon  = random.random() * (LonMax-LonMin) - (LonMax-LonMin)/2  # spike position at Longitudes
         FuncParams.append( [Amplitude, sigmaLat, slideLat, sigmaLon, slideLon] )
 
-    for i in range( 0, 30000 ): 
+    for i in range( 0, 250000 ): 
         Amplitude = (random.random() * 2 *AmpMax - AmpMax) # spike height
-        sigmaLat  = 57.295 * np.random.normal( 0.5, 0.18 ) *  (ScaleLat/100) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
+        sigmaLat  = 57.295  *  (ScaleLat) / (R_Earth * 2.3548) # could be gaussian np.random.normal( 0.5, 0.18 )
         slideLat  = random.random() * 180 - 90   # spike position at Latitudes - they will be contained by LatitudeModulationNorth
         sigmaLon  = 2 * sigmaLat #*  np.rad2deg(math.sin( np.deg2rad(sigmaLat-90) ))
         slideLon  = random.random() * (LonMax-LonMin) - (LonMax-LonMin)/2  # spike position at Longitudes
@@ -135,7 +135,8 @@ print( "TEST Sub-Grid-Variability for world finished in" , finishSecs-startSecs,
 @vectorize(['float32(float32, float32, float32, float32, float32, float32, float32)'], target='cuda')
 def Gaussian( LAT, LON, Amplitude, sigmaLat, slideLat, sigmaLon, slideLon ):
     result = 0.0
-    sigma_mod =  (LatMax - LatMin)/2.3548
+    #sigma_mod =  (LatMax - LatMin)/2.3548
+    sigma_mod=15/2.3548
     #if abs(LAT) < abs(LatMin)-5: return 0  # <<<<
     
     # main function - for North Altitudes
@@ -143,6 +144,9 @@ def Gaussian( LAT, LON, Amplitude, sigmaLat, slideLat, sigmaLon, slideLon ):
     F1 = ((LAT-slideLat)**2)/(2*sigmaLat**2)
     F2 = (2*sigmaLon**2)
     result += Amplitude * math.e ** ( - F1 - ((LON-slideLon)**2)/F2  + LatitudeModulationNorth )
+    
+    
+    
     
     # for symmetry - for South Altitudes
     LatitudeModulationSouth =  -((LAT+LatMax)**2) / (2*sigma_mod**2) 
