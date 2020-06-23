@@ -32,7 +32,7 @@ def badPoints(der2, val, srt, limit):
     if srt == 0.1:
         tol = 0.03
     elif srt == 1:
-        tol = 0.0005
+        tol = 0.01#0.0005
     elif srt == 16:
         tol = 0.0005
     a = []
