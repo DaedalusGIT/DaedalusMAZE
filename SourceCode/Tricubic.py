@@ -29,12 +29,13 @@ def dfdt(m, srt):
 
 def badPoints(der2, val, srt, limit):
     der2 = der2 / val
+#     print(srt)
     if srt == 0.1:
         tol = 0.03
     elif srt == 1:
-        tol = 0.008#0.0005
+        tol = 0.003#0.0005
     elif srt == 10:
-        tol = 0.008#0.0005
+        tol = 0.0005
     elif srt == 16:
         tol = 0.0005
     a = []
