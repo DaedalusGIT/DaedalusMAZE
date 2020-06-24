@@ -16,6 +16,7 @@ AllData_Files_Path = "/home/NAS/"
 
 # Absolute path where the TIEGCM data files are stored
 TIEGCM_Files_Path = "/home/NAS/TIEGCM_DATA/"
+TIEGCM_Files_Path_2 = "/home/NAS/TIEGCM_DATA_2/TIEGCM_Lifetime_2015_to_2018_JH_QD/"
 
 # Absolute path where the WACCAM-X data files are stored
 WACCAMX_Files_Path = "/home/NAS/WACCAM_X/"
