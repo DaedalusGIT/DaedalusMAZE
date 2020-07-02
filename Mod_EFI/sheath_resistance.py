@@ -42,7 +42,7 @@ def plot_along_orbit(x,plt_serial,label_y,title):
 # OTHER OUTPUTS:: plots
 def main(file_IRI,file_Velocities,outfile,Save_Products,var_to_plot,Plot_Products,label_y,title):
 
-    Model_Data = pd.read_csv("~/DaedalusMaze/DataFiles/OrbitData/"+file_IRI)
+    Model_Data = pd.read_csv("../../../DataFiles/OrbitData/"+file_IRI)
     daed_time = Model_Data["Epoch(UTCG)"]
     daed_lat = Model_Data["Lat_GEOD(deg)"]
     daed_lon = Model_Data["Lon_GEOD(deg)"]
@@ -57,48 +57,59 @@ def main(file_IRI,file_Velocities,outfile,Save_Products,var_to_plot,Plot_Product
     T_Op = T_i
     #T_O2p = T_i
     #T_NOp = T_i
-    
-    Ram_Data = pd.read_csv("~/DaedalusMaze/DataFiles/OrbitData/"+file_Velocities)
-    RamX = Ram_Data["RamX_GSE"]*1e3    # in m/s
-    RamY = Ram_Data["RamY_GSE"]*1e3    # in m/s
-    RamZ = Ram_Data["RamZ_GSE"]*1e3    # in m/s
+
+    #=============
+    # Constants
+    #=============
+
+    #=============
+    # Boom Dimensions
+    #=============
+    length = 5.0     # in m
+    radius = 0.06     # 6 cm
+
+    A_full = 4. * np.pi * radius * radius   # Fully Sphere
+    A_ram  = np.pi * radius * radius        # Cross-sectional area
+
+    #Lambda_D = np.sqrt( e0 * Kb * T_e / (n_e * qe * qe))
+
+
+    e0 = 8.85e-12    # permitivity of free space
+    qe = 1.6e-19     # fundamental charge in Coloumb
+    Kb = 1.38e-23    # Boltzman constant
+    me = 9.11e-31    # electron mass in kg
+    mi = 1.67e-27    # ion mass in kg
+    mOp = 16.0 * mi   # Oxygen mass in kg
+    #mO2p = 16.0 * mi   # Oxygen mass in kg
+    #mNOp = 16.0 * mi   # Oxygen and Nitrogen mass in kg
+    RE = 6371.0         # in km
+ 
+    Ram_Data = pd.read_csv("../../../DataFiles/OrbitData/"+file_Velocities)
     V_ram = Ram_Data["VMag(km/s)"]*1e3 # in m/s
+    RamX = Ram_Data["RamX_GSE"]*V_ram   # in m/s
+    RamY = Ram_Data["RamY_GSE"]*V_ram    # in m/s
+    RamZ = Ram_Data["RamZ_GSE"]*V_ram    # in m/s
     X_GSE = Ram_Data["X_GSE(km)"]     # in km 
     Y_GSE = Ram_Data["Y_GSE(km)"]     # in km
     Z_GSE = Ram_Data["Z_GSE(km)"]     # in km
 
     npoints = daed_time.shape[0]
-    Rs = np.zeros(npoints)
+    RS = np.zeros(npoints)
     V_I0 = np.zeros(npoints)
     I_V0 = np.zeros(npoints)
-    
-    
+    Gain = np.zeros(npoints)
+    FRC = np.zeros(npoints)
+    GDC = np.zeros(npoints)
+    GAC = np.zeros(npoints)
+
+
+    RB = 100e6 # Base Resistance in Ohms
+    CB = 100e-12 # Capacitance in Farads
+    CS = 4*np.pi*e0*radius
+    #omega = 1e2 # in Hz
     for k in range(1616,5416):
         print('k =', k)
          # ******************************************************************************************
-        #=============
-        # Constants
-        #=============
-
-        e0 = 8.85e-12    # permitivity of free space
-        qe = 1.6e-19     # fundamental charge in Coloumb
-        Kb = 1.38e-23    # Boltzman constant
-        me = 9.11e-31    # electron mass in kg
-        mi = 1.67e-27    # ion mass in kg
-        mOp = 16.0 * mi   # Oxygen mass in kg
-        #mO2p = 16.0 * mi   # Oxygen mass in kg
-        #mNOp = 16.0 * mi   # Oxygen and Nitrogen mass in kg
-        RE = 6371.0         # in km
-        #=============
-        # Boom Dimensions
-        #=============
-        length = 5.0     # in m
-        radius = 0.06     # 6 cm
-
-        A_full = 4. * np.pi * radius * radius   # Fully Sphere
-        A_ram  = np.pi * radius * radius        # Cross-sectional area
-
-        #Lambda_D = np.sqrt( e0 * Kb * T_e / (n_e * qe * qe))
 
         #================
         # For different values of spacecraft potential 
@@ -189,58 +200,74 @@ def main(file_IRI,file_Velocities,outfile,Save_Products,var_to_plot,Plot_Product
         IL0_ind = np.asarray(I_total <=0).nonzero() # make it better
         I0_ind = IL0_ind[0][-1]
 
-        Rs[k] = R[I0_ind]
+        RS[k] = R[I0_ind]
         V_I0[k] = Vsc[I0_ind]
         I_V0[k] = I_total[100]
-
-
+        
+        nn = 4000
+        omega = np.linspace(0.01,4e6,nn)
+        ZB = RB / (1. + 1j*omega*CB*RB)
+        ZS = RS[k] / ( 1.+ 1j*omega*CS*RS[k])
+        G = np.zeros(nn)
+        G = ZB /(ZB+ZS)
+        plt.semilogx(omega,G.real)
+        plt.ylabel("Gain")
+        plt.xlabel("Frequency")
+        #plt.savefig('Gain.png')    
+        gind = np.where((G.real < 0.55) & (G.real > 0.48))
+        FRC[k] = omega[gind[0][0]]
+        GDC[k] = G.real[2]
+        GAC[k] = G.real[3900]
     # end of loop
 
-    plt.plot(Rs/1e6)
+    plt.plot(RS/1e6)
+    plt.ylabel("Resistance (Mega Ohm)")
+
     plt.plot(V_I0)
     plt.plot(I_V0)
 
+    plt.semilogy(FRC/(2*np.pi*1e3))
+    plt.ylabel("R-C cross over Frequency (kHz)")
+    plt.savefig('FRC.png') 
     
     plt.plot(np.sqrt(X_GSE*X_GSE+Y_GSE*Y_GSE+Z_GSE*Z_GSE)/RE)
     plt.plot(X_GSE/RE)
-    plt.ylabel("Resistance")
     
     
-    # ******************************************************************************************
-    # Plotting Model Data
-    if var_to_plot== "":
-        plot_along_orbit(NE  ,1  ,"NE $cm^-3$","Electron Density NE")
-        plot_along_orbit(Te  ,2  ,"Te $K$","Electron Temperature K")
-        plot_along_orbit(Ti  ,3  ,"Ti $K$","Ion Temperature K")
-        plot_along_orbit(Op  ,4  ,"OP $cm^-3$","Ion Oxygen Density OP")
-        plot_along_orbit(O2p ,5  ,"O2P $cm^-3$","Ion Oxygen 2 Density O2P")
-        plot_along_orbit(NO  ,6  ,"NO $cm^-3$","Nitric Oxide Density NO")
-    else:
+#     # ******************************************************************************************
+#     # Plotting Model Data
+#     if var_to_plot== "":
+#         plot_along_orbit(NE  ,1  ,"NE $cm^-3$","Electron Density NE")
+#         plot_along_orbit(Te  ,2  ,"Te $K$","Electron Temperature K")
+#         plot_along_orbit(Ti  ,3  ,"Ti $K$","Ion Temperature K")
+#         plot_along_orbit(Op  ,4  ,"OP $cm^-3$","Ion Oxygen Density OP")
+#         plot_along_orbit(O2p ,5  ,"O2P $cm^-3$","Ion Oxygen 2 Density O2P")
+#         plot_along_orbit(NO  ,6  ,"NO $cm^-3$","Nitric Oxide Density NO")
+#     else:
 
-        plot_along_orbit(Model_Data[var_to_plot],1 ,label_y,title)
+#         plot_along_orbit(Model_Data[var_to_plot],1 ,label_y,title)
 
-    if Plot_Products==True:
-        plot_along_orbit(t_ratio,7 ,"Ti/Te","T Ratio")
-        plot_along_orbit(L_D,8 ,"Ld m","Debye Length Along Orbit")
-        plot_along_orbit(mach_number,9 ,"Mach Number","Mach Number (km/sec)")
-        plot_along_orbit(wp,10 ,"$V_{p}$" ,"Plasma Frequency")
+#     if Plot_Products==True:
+#         plot_along_orbit(t_ratio,7 ,"Ti/Te","T Ratio")
+#         plot_along_orbit(L_D,8 ,"Ld m","Debye Length Along Orbit")
+#         plot_along_orbit(mach_number,9 ,"Mach Number","Mach Number (km/sec)")
+#         plot_along_orbit(wp,10 ,"$V_{p}$" ,"Plasma Frequency")
 
-    # ******************************************************************************************
+#     # ******************************************************************************************
 
 
 
-    # ******************************************************************************************
+#     # ******************************************************************************************
 
     if Save_Products==True:
         # Export Products for PIC initialization to CSV
-        Exports={'Time (UTCG)':daed_time,'Lat (deg)':daed_lat,'Lon (deg)':daed_lon,
-                    'Alt (km)':daed_alt,'Ti/Te':t_ratio,'Debye Length (m)':L_D,'Plasma Frequency (rad/sec)':wp,
-                    'Mach Number':mach_number }
+        Exports={'Time (UTCG)':daed_time,'Lat (deg)':daed_lat,'Lon (deg)':daed_lon,'Alt (km)':daed_alt,
+                 'RSheath (Ohm)':RS,'FRC (Hz)':FRC,'GDC':GDC,'GAC':GAC,'V_I0':V_I0}
 
 
 
-        df = DataFrame(Exports, columns= ['Time (UTCG)', 'Lat (deg)','Lon (deg)','Alt (km)','Ti/Te','Debye Length (m)',
-                                                        'Plasma Frequency (rad/sec)','Mach Number'])
+        df = DataFrame(Exports, columns= ['Time (UTCG)', 'Lat (deg)','Lon (deg)','Alt (km)','RSheath (Ohm)','FRC (Hz)',
+                                          'GDC','GAC','V_I0 (volt)'])
         export_csv = df.to_csv (outfile + '.csv', index = None, header=True)
     # ******************************************************************************************
 
@@ -250,13 +277,13 @@ def main(file_IRI,file_Velocities,outfile,Save_Products,var_to_plot,Plot_Product
     return
 
 ## Example Call
-file_IRI="DAED_ORB_Evt0_LLA_Per120_Lat00_Srt01Hz_Msc_IRI16_all.csv"
-file_Velocities="DAED_ORB_Evt0_PTG_Per120_Lat00_Srt01Hz_Msc.csv"
+#file_IRI="DAED_ORB_Evt0_LLA_Per120_Lat00_Srt01Hz_Msc_IRI16_all.csv"
+#file_Velocities="DAED_ORB_Evt0_PTG_Per120_Lat00_Srt01Hz_Msc.csv"
 
 file_IRI='DAED_ORB_Evt0_LLA_Per120_Lat80_Srt01Hz_Msc_IRI16_all.csv'
 file_Velocities="DAED_ORB_Evt0_PTG_Per120_Lat80_Srt01Hz_Msc.csv"
 
-outfile="Resistance_Products"
+outfile="Gain_Products"
 Save_Products=True
 Plot_Products=True
 # Plot_All=False
