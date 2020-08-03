@@ -64,12 +64,12 @@ GAC = Gain_Data["GAC"] # Gain in AC Frequency
 
 Bend_data = pd.read_excel("./data/"+file_bend)
 alt_bend = Bend_data["Altitude(km)"]
-# anglex= Bend_data["6m_angle_orthogonally_mounted"] #*0.0254 # in meter
-# angley= Bend_data["6m-Zstar_angle"] #*0.0254  # in meter
-# anglez= Bend_data["6m+Zstar_angle"] #*0.0254  # in meter
-anglex= Bend_data["4m_angle_orthogonally_mounted"] #*0.0254 # in meter
-angley= Bend_data["4m-Zstar_angle"] #*0.0254  # in meter
-anglez= Bend_data["4m+Zstar_angle"] #*0.0254  # in meter
+anglex= Bend_data["6m_angle_orthogonally_mounted"] #*0.0254 # in meter
+angley= Bend_data["6m-Zstar_angle"] #*0.0254  # in meter
+anglez= Bend_data["6m+Zstar_angle"] #*0.0254  # in meter
+# anglex= Bend_data["4m_angle_orthogonally_mounted"] #*0.0254 # in meter
+# angley= Bend_data["4m-Zstar_angle"] #*0.0254  # in meter
+# anglez= Bend_data["4m+Zstar_angle"] #*0.0254  # in meter
 
 
 anglex_fix = np.zeros(7080)
@@ -121,65 +121,78 @@ ZB = RB / (1. + 1j*FRC*CB*RB)
 ZS = RS / ( 1.+ 1j*FRC*CS*RS)
 
 # finding vhat, nhat and chat (Ram, Nadir, Cross track in spacecraft frame)
-# vhat = (Vx i^ + Vy j^ + Vz k^)/Vram
-# nhat = (sin(lat)*cos(lon) i^ + sin(lat)*sin(lon) j^ + cos(lat) k^)
-# chat = vhatXnhat
+
+e1=np.array([-0.88260019,0.15159485,-0.44501226]) #perp to orbital plane constant in all orbit
+e2=np.array([0.40270657,-0.24463839,-0.88203145])
+e3=np.array([0.24257851,0.95769048,-0.15486965])
+
+
+#vhat = -(Vx i^ + Vy j^ + Vz k^)/Vram along sc velocity or anti-ram
+# nhat = chat X vhat
+# chat = e1 from inertia tensor
 vhat = np.zeros((3,7080))
 nhat = np.zeros((3,7080))
 chat = np.zeros((3,7080))
 
 vhat = -1*np.vstack((Vx/V_ram,Vy/V_ram,Vz/V_ram))
-nhat = np.vstack((np.sin(lat*np.pi/180.)*np.cos(lon*np.pi/180.),np.sin(lat*np.pi/180.)*np.sin(lon*np.pi/180.),np.cos(lat*np.pi/180.)))
-chatx = vhat[1,:]*nhat[2,:] - vhat[2,:]*nhat[1,:] 
-chaty = vhat[2,:]*nhat[0,:] - vhat[0,:]*nhat[2,:] 
-chatz = vhat[0,:]*nhat[1,:] - vhat[1,:]*nhat[0,:] 
-chat = np.vstack((chatx,chaty,chatz))
+
+chat[0,:]=e1[0]
+chat[1,:]=e1[1]
+chat[2,:]=e1[2]
+
+nhatx = chat[1,:]*vhat[2,:] - chat[2,:]*vhat[1,:] 
+nhaty = chat[2,:]*vhat[0,:] - chat[0,:]*vhat[2,:] 
+nhatz = chat[0,:]*vhat[1,:] - chat[1,:]*vhat[0,:] 
+
+
 
 Vv = Vx*vhat[0,:] + Vy*vhat[1,:] + Vz*vhat[2,:]
-Vn = 0 #Vx*nhat[0,:] + Vy*nhat[1,:] + Vz*nhat[2,:]
-Vc = 0 #Vx*chat[0,:] + Vy*chat[1,:] + Vz*chat[2,:]
+Vn = Vx*nhat[0,:] + Vy*nhat[1,:] + Vz*nhat[2,:]
+Vc = Vx*chat[0,:] + Vy*chat[1,:] + Vz*chat[2,:]
 
 Bv = Bx*vhat[0,:] + By*vhat[1,:] + Bz*vhat[2,:]
 Bn = Bx*nhat[0,:] + By*nhat[1,:] + Bz*nhat[2,:]
 Bc = Bx*chat[0,:] + By*chat[1,:] + Bz*chat[2,:]
 
 # ******************************************************************************************
-# Calculating Motional Electric Field Using VxB 
+# Calculating Motional Electric Field Using VxB in SC frame
 # ******************************************************************************************
-# Emx = -(Vy*Bz - Vz*By)  # in V/m  
-# Emy = -(Vz*Bx - Vx*Bz)  # in V/m
-# Emz = -(Vx*By - Vy*Bx)  # in V/m
-# Emtot = np.sqrt(Emx*Emx + Emy*Emy + Emz*Emz)         # in V/m
 
 # Ev = E.vhat = 0, En = E.nhat, Ec = E.chat
 
 # Ev = Emx*vhat[0,:] + Emy*vhat[1,:] + Emz*vhat[2,:]
 # En = Emx*nhat[0,:] + Emy*nhat[1,:] + Emz*nhat[2,:]
 # Ec = Emx*chat[0,:] + Emy*chat[1,:] + Emz*chat[2,:]
+Bv=Bx
+Bn=By
+Bc=Bz
+
+
 Ev = -(Vn*Bc - Vc*Bn)  # in V/m  
 En = -(Vc*Bv - Vv*Bc)  # in V/m
 Ec = -(Vv*Bn - Vn*Bv)  # in V/m
 
-Vx = Vv
-Vy = Vn
-Vz = Vc
+# Rotate Velocity and B to boom frame
+Vel_12 = Vv*np.cos(45*np.pi/180.)
+Vel_34 = Vv*np.sin(45*np.pi/180.)*np.cos(45*np.pi/180.)
+Vel_56 = Vv*np.sin(45*np.pi/180.)*np.cos(45*np.pi/180.)
 
-Bx = Bv
-By = Bn
-Bz = Bc
+B_12 = Bv*np.cos(45*np.pi/180.)-Bn*np.cos(45*np.pi/180.)
+B_34 = Bv*np.sin(45*np.pi/180.)*np.cos(45*np.pi/180.)+Bn*np.cos(45*np.pi/180.)*np.cos(45*np.pi/180.)-Bc*np.cos(45*np.pi/180.)
+B_56 = Bv*np.sin(45*np.pi/180.)*np.cos(45*np.pi/180.)+Bn*np.cos(45*np.pi/180.)*np.cos(45*np.pi/180.)+Bc*np.cos(45*np.pi/180.)
 
 
 # error terms
 
 # 0.1% error in spacecraft velocity
-dVv = 0.001*Vx   # in m/s
-dVn = 0.001*Vy   # in m/s
-dVc = 0.001*Vz   # in m/s
+dVv = 0.001*Vel_12   # in m/s
+dVn = 0.001*Vel_34   # in m/s
+dVc = 0.001*Vel_56   # in m/s
 
 # 5nT error in Magnetic field
-dBx = 5 * 10 ** (-9) # in Tesla
-dBy = 5 * 10 ** (-9) # in Tesla
-dBz = 5 * 10 ** (-9) # in Tesla
+dBv = 5 * 10 ** (-9) # in Tesla
+dBn = 5 * 10 ** (-9) # in Tesla
+dBc = 5 * 10 ** (-9) # in Tesla
 
 # error in plasma parameters
 dTi = 0.1*Ti
@@ -191,9 +204,9 @@ dnOp = 0.05*nOp
 
 
 # Motional E error terms
-dEmxerr = np.sqrt( (Bz*dVn)**2 + (Vy*dBz)**2 + (By*dVc)**2 + (Vz*dBy)**2 )
-dEmyerr = np.sqrt( (Bx*dVc)**2 + (Vz*dBx)**2 + (Bz*dVv)**2 + (Vx*dBz)**2 )
-dEmzerr = np.sqrt( (Bx*dVn)**2 + (Vy*dBx)**2 + (By*dVv)**2 + (Vx*dBy)**2 )
+dEmxerr = np.sqrt( (B_56*dVn)**2 + (Vel_34*dBc)**2 + (B_34*dVc)**2 + (Vel_56*dBn)**2 )
+dEmyerr = np.sqrt( (B_12*dVc)**2 + (Vel_56*dBv)**2 + (B_56*dVv)**2 + (Vel_12*dBc)**2 )
+dEmzerr = np.sqrt( (B_12*dVn)**2 + (Vel_34*dBv)**2 + (B_34*dVv)**2 + (Vel_12*dBn)**2 )
 dEmerr = np.sqrt(dEmxerr*dEmxerr+dEmyerr*dEmyerr+dEmzerr*dEmzerr)
 
 
@@ -233,54 +246,74 @@ Vsn = np.sqrt(2.* qe**2 * N_impact * ZS_sq * np.exp((qe*VI0)/(Kb*Te)))*4
 
 dVsn = np.sqrt( (0.5*Vsn*dne/ne)**2 + (ZS_sq*Vsn*dRs/RS**3)**2 + ((0.25+0.5*qe*VI0/(Kb*Te))*Vsn*dTe/Te)**2)
 
-dVerr = np.sqrt(dVPDA**2+dVsn**2)
+
+# calculate Eperp and Epar for each boom pair
+# 
+E12par = En*np.cos(45*np.pi/180.)
+E12perp = np.sqrt(Ec**2 + (En*np.sin(45*np.pi/180.))**2)
+
+E34par = En*(np.cos(45*np.pi/180.)**2)-Ec*np.cos(45*np.pi/180.)
+E34perp = En*np.cos(45*np.pi/180.)*np.sin(45*np.pi/180.)+Ec*np.sin(45*np.pi/180.)
+
+E56par = En*(np.cos(45*np.pi/180.)**2)+Ec*np.cos(45*np.pi/180.)
+E56perp = En*np.cos(45*np.pi/180.)*np.sin(45*np.pi/180.)-Ec*np.sin(45*np.pi/180.)
+
 
 
 # bending angle of the booms
 #theta = 2.*np.pi/180.
 
 # for 4m and 6m boom
-length=4.
-thetax= anglex_fix #np.arctan(lx_fix/length)*180./np.pi
-thetay= angley_fix #np.arctan(ly_fix/length)*180./np.pi
-thetaz= anglez_fix #np.arctan(lz_fix/length)*180./np.pi
-#Leff = 2*length*np.cos(theta)
+length=6.
+thetax= anglex_fix*np.pi/180. #np.arctan(lx_fix/length)*180./np.pi
+thetazm= angley_fix*np.pi/180. #np.arctan(ly_fix/length)*180./np.pi
+thetazp= anglez_fix*np.pi/180. #np.arctan(lz_fix/length)*180./np.pi
+
 dL = 0.0
 
-# keeping max bending to 2 degrees
-# thetax = thetax*2./max(thetax)
-# thetay = thetay*2./max(thetay)
-# thetaz = thetaz*2./max(thetaz)
-
-Lxeff = 2*length*np.cos(thetax)
-Lyeff = 2*length*np.cos(thetay)
-Lzeff = 2*length*np.cos(thetaz)
-
+Leff = length*(np.cos(thetazm)+ np.cos(thetazp))
 
 # V is motional field*Leff    #+ natural field*Leff  set to zero 
-dVx = Ev*Lxeff #+50e-3*Lxeff
-dVy = En*Lyeff #+50e-3*Lyeff
-dVz = Ec*Lzeff #+50e-3*Lzeff
+
+dV12 = E12par*Leff  #+50e-3*Lxeff
+dV34 = E34par*Leff  #+50e-3*Lyeff
+dV56 = E56par*Leff  #+50e-3*Lzeff
+
+dV12_par_err = length*E12par*(2.-np.cos(thetazm)-np.cos(thetazp))
+dV34_par_err = length*E34par*(2.-np.cos(thetazm)-np.cos(thetazp))
+dV56_par_err = length*E56par*(2.-np.cos(thetazm)-np.cos(thetazp))
+dV12_perp_err = length*E12perp*(np.sin(thetazm)-np.sin(thetazp))
+dV34_perp_err = length*E34perp*(np.sin(thetazm)-np.sin(thetazp))
+dV56_perp_err = length*E56perp*(np.sin(thetazm)-np.sin(thetazp))
+
+
+
+# FIXME add dV_par_err  and dV_perp_err
+dVerr12 = np.sqrt(dVPDA**2+dVsn**2+dV12_par_err**2+dV12_perp_err**2 )
+dVerr34 = np.sqrt(dVPDA**2+dVsn**2+dV34_par_err**2+dV34_perp_err**2 )
+dVerr56 = np.sqrt(dVPDA**2+dVsn**2+dV56_par_err**2+dV56_perp_err**2 )
+
+
+
 
 # total error
-#should I use VI0? What V is right?
 
 #first = dV*GDC/Leff*np.sqrt((dVerr/VI0)**2 +np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2)
-firstx =  np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2 # +dVx*GDC/Lxeff*np.sqrt((dVerr/dVx)**2
-firsty = dVy*GDC/Lyeff*np.sqrt((dVerr/dVy)**2 +np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2)
-firstz = dVz*GDC/Lzeff*np.sqrt((dVerr/dVz)**2 +np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2)
+first12 = dV12*GDC/Leff*np.sqrt((dVerr12/dV12)**2 + np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2)
+first34 = dV34*GDC/Leff*np.sqrt((dVerr34/dV34)**2 + np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2)
+first56 = dV56*GDC/Leff*np.sqrt((dVerr56/dV56)**2 + np.sqrt(np.real(dGerr_sq/GDC))**2 + (0.5*dL/length)**2)
+
 #dEerr = np.sqrt((first)**2 + dEmerr**2)
-dExerr = np.sqrt((firstx)**2 + dEmxerr**2)
-dEyerr = np.sqrt((firsty)**2 + dEmyerr**2)
-dEzerr = np.sqrt((firstz)**2 + dEmzerr**2)
-#dEerr = np.sqrt((dVerr)**2 +np.sqrt(np.real(dGerr_sq))**2 + dL**2+ dEmerr**2)
+dE12err = np.sqrt((first12)**2 + dEmxerr**2)
+dE34err = np.sqrt((first34)**2 + dEmyerr**2)
+dE56err = np.sqrt((first56)**2 + dEmzerr**2)
 
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('orbit')
 ax1.set_ylabel('Bending angle (degrees)', color=color)
-ax1.plot(thetax, color=color)
+ax1.plot(thetazp*180./np.pi, color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -300,8 +333,8 @@ fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('orbit')
-ax1.set_ylabel('Ex Error (mV/m)', color=color)
-ax1.plot(dExerr*1e3, color=color)
+ax1.set_ylabel('E12 Error (mV/m)', color=color)
+ax1.plot(dE12err*1e3, color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -311,16 +344,16 @@ ax2.set_ylabel('Altitude (Km)', color=color)  # we already handled the x-label w
 ax2.plot(alt, color=color)
 ax2.tick_params(axis='y', labelcolor=color)
 
-plt.title('Boom length = 4m')
+plt.title('Boom length = 6m')
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
-plt.savefig('XErrorinorbit4.png')
+plt.savefig('XErrorinorbit6.png')
 
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('orbit')
-ax1.set_ylabel('Ey Error (mV/m)', color=color)
-ax1.plot(dEyerr*1e3, color=color)
+ax1.set_ylabel('E34 Error (mV/m)', color=color)
+ax1.plot(dE34err*1e3, color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -330,17 +363,17 @@ ax2.set_ylabel('Altitude (Km)', color=color)  # we already handled the x-label w
 ax2.plot(alt, color=color)
 ax2.tick_params(axis='y', labelcolor=color)
 
-plt.title('Boom length = 4m')
+plt.title('Boom length = 6m')
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
-plt.savefig('YErrorinorbit4.png')
+plt.savefig('YErrorinorbit6.png')
 
 
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('orbit')
-ax1.set_ylabel('Ez Error (mV/m)', color=color)
-ax1.plot(dEzerr*1e3, color=color)
+ax1.set_ylabel('E56 Error (mV/m)', color=color)
+ax1.plot(dE56err*1e3, color=color)
 ax1.tick_params(axis='y', labelcolor=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -350,9 +383,9 @@ ax2.set_ylabel('Altitude (Km)', color=color)  # we already handled the x-label w
 ax2.plot(alt, color=color)
 ax2.tick_params(axis='y', labelcolor=color)
 
-plt.title('Boom length = 4m')
+plt.title('Boom length = 6m')
 fig.tight_layout()  # otherwise the right y-label is slightly clipped
-plt.savefig('ZErrorinorbit4.png')
+plt.savefig('ZErrorinorbit6.png')
 
 
 
